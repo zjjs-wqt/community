@@ -6,7 +6,10 @@ import com.example.community.entity.DiscussPost;
 import com.example.community.entity.Page;
 import com.example.community.entity.User;
 import com.example.community.service.DiscussPostService;
+import com.example.community.service.LikeService;
 import com.example.community.service.UserService;
+import com.example.community.util.CommunityConstant;
+import com.example.community.util.CommunityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-public class HomeController {
+public class HomeController implements CommunityConstant {
 
     @Autowired
     private DiscussPostService discussPostService;
@@ -27,6 +30,9 @@ public class HomeController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private LikeService likeService;
+    
     @RequestMapping(path = "/index" , method = RequestMethod.GET)
     public String getIndexPage(Model model , Page page){
         // 方法调用前，springMVC会自动实例化Model和Page，并将Page注入Model
@@ -43,6 +49,8 @@ public class HomeController {
                 map.put("post",post);
                 User user = userService.findUserById(post.getUserId());
                 map.put("user",user);
+                long likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_POST,post.getId());
+                map.put("likeCount", likeCount);
                 discussPosts.add(map);
             }
 
@@ -51,4 +59,8 @@ public class HomeController {
         return "/index";
     }
 
+    @RequestMapping( path = "/error" , method = RequestMethod.GET)
+    public String getErrorPage(){
+        return "/error/500";
+    }
 }
