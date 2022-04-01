@@ -45,7 +45,7 @@ function delete_msg() {
 			setTimeout(function(){
 				// 刷新页面
 				location.reload();
-			}, 2000);
+			}, 200);
 		}
 	
 	);

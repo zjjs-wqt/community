@@ -139,6 +139,7 @@ public class SensitiveFilter {
         // 0X2E80 - 0X9FFF 东亚文字范围
         return !CharUtils.isAsciiAlphanumeric(c)  && (c < 0x2E80 || c > 0X9FFF);
     }
+    
     //前缀树
     private class TrieNode {
         

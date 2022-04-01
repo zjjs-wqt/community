@@ -18,6 +18,7 @@ public class MailTest {
 
     @Autowired
     private TemplateEngine templateEngine;
+    
     @Test
     public void testTextMail(){
         mailClient.sendMail("zjjswqt@163.com","TEST","Welcome.");

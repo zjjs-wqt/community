@@ -26,7 +26,7 @@ public class LikeService {
                 
                 operations.multi();
                 
-                if( isMember){
+                if( isMember ){
                     operations.opsForSet().remove(entityLikeKey, userId);
                     operations.opsForValue().decrement(userLikeKey);
                 } 

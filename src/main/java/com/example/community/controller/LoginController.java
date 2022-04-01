@@ -104,7 +104,7 @@ public class LoginController implements CommunityConstant {
             }
             return "/site/operate-result";
     }
-
+    
     @RequestMapping(path = "/kaptcha" , method = RequestMethod.GET)
     public void getKaptcha(HttpServletResponse response  /*, HttpSession session */ ){
         //生成验证码

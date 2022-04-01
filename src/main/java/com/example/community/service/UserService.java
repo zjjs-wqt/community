@@ -194,7 +194,10 @@ public class UserService implements CommunityConstant {
     }
 
     public int updateHeader(int userId  , String headerUrl){
-        return userMapper.updateHeader(userId , headerUrl );
+//        return userMapper.updateHeader(userId , headerUrl );
+        int rows = userMapper.updateHeader(userId , headerUrl );
+        clearCache(userId);
+        return rows;
     }
 
     //修改密码
@@ -228,7 +231,7 @@ public class UserService implements CommunityConstant {
         //更新密码
         newPassword = CommunityUtil.md5(newPassword + user.getSalt());
         userMapper.updatePassword(userId,newPassword);
-
+        clearCache(userId);
         return map;
 
 
@@ -257,7 +260,7 @@ public class UserService implements CommunityConstant {
         }
         password = CommunityUtil.md5( password + user.getSalt());
         userMapper.updatePassword(user.getId(),password);
-
+        clearCache(user.getId());
         map.put("user",user);
         return map;
 

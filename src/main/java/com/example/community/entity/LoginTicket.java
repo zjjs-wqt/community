@@ -2,6 +2,7 @@ package com.example.community.entity;
 
 import java.util.Date;
 
+
 public class LoginTicket {
     private int id ;
     private int userId;
