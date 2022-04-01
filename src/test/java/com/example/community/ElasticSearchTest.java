@@ -77,6 +77,13 @@ public class ElasticSearchTest {
         discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(132,0,100));
         discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(133,0,100));
         discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(134,0,100));
+        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(11,0,100));
+        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(138,0,100));
+        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(145,0,100));
+        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(146,0,100));
+        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(149,0,100));
+        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(155,0,100));
+        
     }
     //修改一下
     @Test
