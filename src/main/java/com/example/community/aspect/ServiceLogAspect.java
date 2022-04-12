@@ -24,9 +24,9 @@ public class ServiceLogAspect {
 
     @Pointcut("execution(* com.example.community.service.*.*(..))")
     public void pointcut(){
-        
+
     }
-    
+
     @Before("pointcut()")
     public void before(JoinPoint joinPoint){
         //用户[1.2.3.4],在[xxx],访问了[com.example.community.service.xxx()];

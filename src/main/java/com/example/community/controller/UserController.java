@@ -1,6 +1,10 @@
 package com.example.community.controller;
 
 import ch.qos.logback.core.status.StatusUtil;
+import com.aliyun.oss.OSS;
+import com.aliyun.oss.model.GeneratePresignedUrlRequest;
+import com.aliyun.oss.model.PutObjectRequest;
+import com.aliyun.oss.model.PutObjectResult;
 import com.example.community.annotation.LoginRequired;
 import com.example.community.entity.Comment;
 import com.example.community.entity.DiscussPost;
@@ -29,10 +33,8 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.PushBuilder;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.net.URL;
+import java.util.*;
 
 @Controller
 @RequestMapping("user")
@@ -42,10 +44,10 @@ public class UserController implements CommunityConstant {
 
     @Value("${community.path.upload}")
     private String uploadPath;
-
+    
     @Value("${community.path.domain}")
     private String domain;
-
+    
     @Value("${server.servlet.context-path}")
     private String contextPath;
 
@@ -66,6 +68,15 @@ public class UserController implements CommunityConstant {
     
     @Autowired
     private CommentService commentService;
+
+    @Value ("${aliyun.bucket-name}")
+    private String bucketName;
+
+    @Value("${aliyun.endpoint}")
+    private String endpoint;
+
+    @Autowired
+    private OSS ossClient;
     
     @LoginRequired
     @RequestMapping(path = "/setting" , method = RequestMethod.GET)
@@ -73,69 +84,139 @@ public class UserController implements CommunityConstant {
         return "/site/setting";
     }
 
+
+
     @LoginRequired
-    @RequestMapping(path = "/upload" , method = RequestMethod.POST)
-    public String uploadHeader(MultipartFile headerImage , Model model){
-        if( headerImage == null ){
-            model.addAttribute("error","您还没有上传图片！");
+    @RequestMapping(path = "/upload",method = RequestMethod.POST)
+    public String uploadHeader(MultipartFile headerImage, Model model){
+        if(headerImage==null){
+            model.addAttribute("error","你还没有选择图片");
             return "/site/setting";
         }
 
         String filename = headerImage.getOriginalFilename();
-        String suffix = filename.substring(filename.lastIndexOf("."));
-        if(StringUtils.isBlank(suffix)){
-            model.addAttribute("error","文件的格式不正确！");
+        if(filename==null){
+            model.addAttribute("error","图片名错误");
             return "/site/setting";
         }
-
-        // 生成随机文件名
-        filename = CommunityUtil.generateUUID() + suffix ;
-        //确定文件的存放路径
-        File dest = new File(uploadPath  +  "/"  +  filename);
-        try {
-            //存储文件
-            headerImage.transferTo(dest);
-        } catch (IOException e) {
-            logger.error("上传文件失败" + e.getMessage());
-            throw new RuntimeException("上传文件失败，服务器发生异常",e);
+        String suffix = filename.substring(filename.lastIndexOf("."));
+        if(StringUtils.isBlank(suffix)){
+            model.addAttribute("error","文件格式不正确");
+            return "/site/setting";
         }
-
-        // 更新当前用户的头像的路径（web访问路径）
-        // http://localhost:8080/community/user/header/xxx.png
+        //生成随机文件名
+        filename = CommunityUtil.generateUUID() + suffix;
+//        File dest = new File(uploadPath+"/"+filename);
+        filename = "header/" + filename;
+        try {
+//            headerImage.transferTo(dest);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName,filename,headerImage.getInputStream());
+            Map<String, String> map = new HashMap<>();
+            //设置为公开读可见
+            map.put("x-oss-object-acl","public-read");
+            putObjectRequest.setHeaders(map);
+            PutObjectResult putResult = ossClient.putObject(putObjectRequest);
+        } catch (IOException e) {
+            logger.error("上传文件失败："+e.getMessage());
+            throw new RuntimeException("上传文件失败，服务器发生异常！",e);
+        } finally {
+//            ossClient.shutdown();
+        }
+        //更新当前头像路径
         User user = hostHolder.getUser();
-        String headerUrl = domain + contextPath + "/user/header/" + filename;
-        userService.updateHeader(user.getId(),headerUrl);
-
+//        String headerUrl = getUrl(filename);
+        String headerUrl = "https://" + bucketName + "." + endpoint + "/" + filename;
+//        String headerUrl = domain + contextPath + "/user/header/" + filename;
+        int i = userService.updateHeader(user.getId(), headerUrl);
+        System.out.println(i);
         return "redirect:/index";
     }
+    
+//    //废弃
+//    @LoginRequired
+//    @RequestMapping(path = "/upload" , method = RequestMethod.POST)
+//    public String uploadHeader(MultipartFile headerImage , Model model){
+//        if( headerImage == null ){
+//            model.addAttribute("error","您还没有上传图片！");
+//            return "/site/setting";
+//        }
+//
+//        String filename = headerImage.getOriginalFilename();
+//        String suffix = filename.substring(filename.lastIndexOf("."));
+//        if(StringUtils.isBlank(suffix)){
+//            model.addAttribute("error","文件的格式不正确！");
+//            return "/site/setting";
+//        }
+//
+//        // 生成随机文件名
+//        filename = CommunityUtil.generateUUID() + suffix ;
+//        //确定文件的存放路径
+//        File dest = new File(uploadPath  +  "/"  +  filename);
+//        try {
+//            //存储文件
+//            headerImage.transferTo(dest);
+//        } catch (IOException e) {
+//            logger.error("上传文件失败" + e.getMessage());
+//            throw new RuntimeException("上传文件失败，服务器发生异常",e);
+//        }
+//
+//        // 更新当前用户的头像的路径（web访问路径）
+//        // http://localhost:8080/community/user/header/xxx.png
+//        User user = hostHolder.getUser();
+//        String headerUrl = domain + contextPath + "/user/header/" + filename;
+//        userService.updateHeader(user.getId(),headerUrl);
+//
+//        return "redirect:/index";
+//    }
 
+//    //废弃
+//    @RequestMapping(path = "/header/{filename}" , method = RequestMethod.GET )
+//    public void getHeader(@PathVariable("filename") String filename , HttpServletResponse response){
+//
+//        //服务器存放路径
+//        filename = uploadPath + "/" + filename;
+//        //文件后缀解析
+//        String suffix = filename.substring(filename.lastIndexOf("."));
+//        //响应图片
+//        response.setContentType("image/" + suffix );
+//        try (
+//                FileInputStream fis = new FileInputStream(filename);
+//                OutputStream os = response.getOutputStream();
+//        ){
+//
+//            byte[] buffer = new byte[1024];
+//            int b = 0 ;
+//            while (( b = fis.read(buffer)) != -1 ){
+//                os.write(buffer , 0 , b);
+//            }
+//        } catch (IOException e) {
+//            logger.error("获取头像失败: " + e.getMessage() );
+//        }
+//
+//
+//    }
 
-    @RequestMapping(path = "/header/{filename}" , method = RequestMethod.GET )
-    public void getHeader(@PathVariable("filename") String filename , HttpServletResponse response){
-
-        //服务器存放路径
-        filename = uploadPath + "/" + filename;
-        //文件后缀解析
-        String suffix = filename.substring(filename.lastIndexOf("."));
-        //响应图片
-        response.setContentType("image/" + suffix );
-        try (
-                FileInputStream fis = new FileInputStream(filename);
-                OutputStream os = response.getOutputStream();
-        ){
-
-            byte[] buffer = new byte[1024];
-            int b = 0 ;
-            while (( b = fis.read(buffer)) != -1 ){
-                os.write(buffer , 0 , b);
-            }
-        } catch (IOException e) {
-            logger.error("获取头像失败: " + e.getMessage() );
+    /**
+     * 获取oss中头像的url
+     * @param fileName
+     * @return
+     */
+    public String getUrl(String fileName) {
+        // 设置URL过期时间为2年  3600l* 1000*24*365*2
+        Date expiration = new Date(new Date().getTime() + 3600l * 1000 * 24 * 365 * 2);
+        
+        // 生成URL
+        GeneratePresignedUrlRequest generatePresignedUrlRequest = new GeneratePresignedUrlRequest(bucketName, fileName);
+        generatePresignedUrlRequest.setExpiration(expiration);
+        URL url = ossClient.generatePresignedUrl(generatePresignedUrlRequest);
+        
+        if (url != null)
+        {
+            return url.toString();
         }
-
-
+        return null;
     }
-
+    
 
     //修改密码
     @LoginRequired
@@ -199,7 +280,7 @@ public class UserController implements CommunityConstant {
         
         //帖子列表
         List<DiscussPost> discussPostList = 
-                discussPostService.findDiscussPost(userId, page.getOffset(), page.getLimit());
+                discussPostService.findDiscussPost(userId, page.getOffset(), page.getLimit(), 0);
         List<Map<String,Object>> discussVOList = new ArrayList<>();
         if(discussPostList != null ){
             for(DiscussPost post : discussPostList){
